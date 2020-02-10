@@ -4,7 +4,7 @@ A simple tool for backing up the playlists of the legendary [Reverberation Radio
 
 ## Installation & Usage
 
-All you need an up-to-date [Nodejs](https://nodejs.org/en/) version.
+All you need is an up-to-date [Nodejs](https://nodejs.org/en/) version.
 
 Then :
 ```
