@@ -67,7 +67,7 @@ async function doTheJob () {
   console.log('Filling output template...\n')
   await fillTemplate(jsonDataWithLocalFiles)
   console.log('Done. Your backup is located in the ./output directory.')
-  console.log('Time to go listen reverb #11 ❤️')
+  console.log('Time to go listen to reverb #11 ❤️')
   console.log('Buh bye James.\n')
 }
 
