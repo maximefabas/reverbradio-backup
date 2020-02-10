@@ -12,34 +12,52 @@ const outDirCoversPath = path.join(outDirPath, 'covers')
 const outDirAudiosPath = path.join(outDirPath, 'audio')
 const outDirExists = fs.existsSync(outDirPath)
 
+const dataDirPath = path.join(__dirname, 'data')
+const dataFilePath = path.join(dataDirPath, 'data.json')
+const dataDirExists = fs.existsSync(dataDirPath)
+const dataFileExists = fs.existsSync(dataFilePath)
+
+const startSavingAt = Number(process.argv[2])
+
 doTheJob()
 
 // Main script
 async function doTheJob () {
   console.log('Start creating a backup of https://reverberationradio.com.\n')
 
-  // If output already exists, exit
-  if (outDirExists) {
-    console.error('Output directory already exists. Exiting now.\n')
-    process.exit(1)
+  // Create output directory if needed
+  if (!outDirExists) {
+    console.log('Creating output directory...')
+    try { await fsExtra.copy(templateDirPath, outDirPath) } catch (e) {
+      console.log(`Error: ${e.message}\n`)
+      process.exit(1)
+    }
+    fs.mkdirSync(outDirCoversPath)
+    fs.mkdirSync(outDirAudiosPath)
+    console.log('Done.\n')
   }
 
-  // Create output directory
-  console.log('Creating output directory...')
-  try { await fsExtra.copy(templateDirPath, outDirPath) }
-  catch (e) {
-    console.log(`Error: ${e.message}\n`)
-    process.exit(1)
-  }
-  fs.mkdirSync(outDirCoversPath)
-  fs.mkdirSync(outDirAudiosPath)
-  console.log('Done.\n')
+  // If no data file exists, load all pages and save data
+  let jsonData
+  if (!dataFileExists) {
+    // Load all pages and gather data
+    console.log('Start loading pages:\n')
+    jsonData = await recursePages()
+    console.log(`Gathered data about ${jsonData.length} playlists.\n`)
 
-  // Load all pages and gather data
-  console.log('Start loading pages:\n')
-  const jsonData = await recursePages()
-  console.log(`Gathered data about ${jsonData.length} playlists.\n`)
-  
+    // Save data file
+    if (!dataDirExists) fs.mkdirSync(dataDirPath)
+    const dataFileDest = path.join(dataDirPath, 'data.json')
+    fs.writeFileSync(dataFileDest, JSON.stringify(jsonData))
+
+  // If data file exists, load it
+  } else {
+    console.log('Loading data from ./data/data.json...')
+    const dataFile = fs.readFileSync(dataFilePath, 'utf-8')
+    jsonData = JSON.parse(dataFile)
+    console.log('Done.\n')
+  }
+
   // Save audio files and covers
   console.log(`Gonna download cover images and audio files for ${jsonData.length} playlists.\n`)
   const jsonDataWithLocalFiles = await saveFiles(jsonData)
@@ -47,7 +65,7 @@ async function doTheJob () {
 
   // Fill HTML template
   console.log('Filling output template...\n')
-  const  outputPageIsFilled = await fillTemplate(jsonDataWithLocalFiles)
+  await fillTemplate(jsonDataWithLocalFiles)
   console.log('Done. Your backup is located in the ./output directory.')
   console.log('Time to go listen reverb #11 ❤️')
   console.log('Buh bye James.\n')
@@ -60,15 +78,13 @@ async function recursePages (page = 0, attempt = 0, data = []) {
   // Load page
   const pageUrl = `https://reverberationradio.com/page/${page + 1}`
   let pageHtml
-  try { pageHtml = await request(pageUrl) }
-  catch (e) {
-
+  try { pageHtml = await request(pageUrl) } catch (e) {
     // If load fails, try again until the 10th try
     if (attempt < 9) {
       console.error(`Failure: ${e.message}.`)
       console.log('Trying again.\n')
       return recursePages(page, attempt + 1, [...data])
-    
+
     // If load fails for the 10th time, exit
     } else {
       console.error(`Failure on last attempt: ${e.message}.`)
@@ -115,28 +131,35 @@ async function recursePages (page = 0, attempt = 0, data = []) {
 
 // Audio files and covers saver
 async function saveFiles (data) {
-  const result = []
-  let playlistsCnt = 0
-  for (const playlist of data) {
-    playlistsCnt++
-    console.log(`Downloading files for playlist ${playlistsCnt} of ${data.length}...`)
-
+  const dataWithLocalFiles = data.map(playlist => {
+    if (playlist.audioFileUrl === 'http://goo.gl/zt1ce') playlist.audioFileUrl = 'https://s3.amazonaws.com/ReverberationRadio/Reverberation43.mp3'
+    else if (playlist.audioFileUrl === 'http://goo.gl/CGiav') playlist.audioFileUrl = 'https://s3.amazonaws.com/ReverberationRadio/Reverberation%E2%9D%84%E2%98%83.mp3'
     const coverExt = playlist.coverFileUrl.split('.').slice(-1)[0]
     const audioExt = playlist.audioFileUrl.split('.').slice(-1)[0]
     const coverDest = path.join(outDirCoversPath, `${playlist.title}.${coverExt}`)
     const audioDest = path.join(outDirAudiosPath, `${playlist.title}.${audioExt}`)
-
-    const dwnCover = await recurseDwnFile(playlist.coverFileUrl, coverDest)
-    const dwnAudio = await recurseDwnFile(playlist.audioFileUrl, audioDest)
-
-    result.push({
+    return {
       ...playlist,
       coverDest,
       audioDest
-    })    
+    }
+  })
+
+  let playlistsCnt = 0
+  if (startSavingAt > 1) {
+    console.log(`You said you wanted to skip the ${startSavingAt - 1} first playlists.`)
+    console.log(`Thus, start saving on playlist ${startSavingAt}.\n`)
+    playlistsCnt = startSavingAt - 1
   }
 
-  return result
+  for (const playlist of dataWithLocalFiles.slice(playlistsCnt)) {
+    playlistsCnt++
+    console.log(`Downloading files for playlist ${playlistsCnt} of ${data.length}...`)
+    await recurseDwnFile(playlist.coverFileUrl, playlist.coverDest)
+    await recurseDwnFile(playlist.audioFileUrl, playlist.audioDest)
+  }
+
+  return dataWithLocalFiles
 }
 
 // Files downloader
@@ -151,15 +174,15 @@ async function recurseDwnFile (fileUrl = '', destination, attempt = 0) {
       const writeProgress = progress(req)
       req.on('error', reject)
       req.on('response', res => {
-          res.pipe(writeStream)
-            .on('error', e => reject(e))
-            .on('finish', () => {
-              process.stdout.clearLine()
-              process.stdout.cursorTo(0)
-              console.log('  Done.\n')
-              resolve(destination)
-            })
-        })
+        res.pipe(writeStream)
+          .on('error', e => reject(e))
+          .on('finish', () => {
+            process.stdout.clearLine()
+            process.stdout.cursorTo(0)
+            console.log('  Done.\n')
+            resolve(destination)
+          })
+      })
       writeProgress.on('error', err => reject(err))
       writeProgress.on('progress', state => {
         process.stdout.clearLine()
@@ -187,7 +210,7 @@ async function recurseDwnFile (fileUrl = '', destination, attempt = 0) {
 async function fillTemplate (data) {
   const outFileLocation = path.join(outDirPath, 'index.html')
   const outputFile = fs.readFileSync(outFileLocation, 'utf-8')
-  
+
   const $ = cheerio.load(outputFile)
   data.forEach(playlist => {
     const $playlists = $('.playlists')
@@ -213,4 +236,3 @@ async function fillTemplate (data) {
 
   return fs.writeFileSync(outFileLocation, $.html())
 }
-  

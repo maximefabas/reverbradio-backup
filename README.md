@@ -15,6 +15,12 @@ Then :
 > npm start
 ```
 
+If you want to interrupt the download and start again some time later, you can just specify the playlist number you want to start on by passing it as a parameter:
+```
+npm start 250
+```
+This will start downloading files for the playlist at position 250.
+
 ## License
 MIT License
 
