@@ -37,7 +37,7 @@ async function doTheJob () {
 
   // Load all pages and gather data
   console.log('Start loading pages:\n')
-  const jsonData = await recursePages(29)
+  const jsonData = await recursePages()
   console.log(`Gathered data about ${jsonData.length} playlists.\n`)
   
   // Save audio files and covers
@@ -117,7 +117,7 @@ async function recursePages (page = 0, attempt = 0, data = []) {
 async function saveFiles (data) {
   const result = []
   let playlistsCnt = 0
-  for (const playlist of data.slice(-5)) {
+  for (const playlist of data) {
     playlistsCnt++
     console.log(`Downloading files for playlist ${playlistsCnt} of ${data.length}...`)
 
