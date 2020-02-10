@@ -1,0 +1,28 @@
+{
+  "name": "reverberationradio-backup",
+  "version": "1.0.0",
+  "description": "A simple backup script for reverberationradio.com",
+  "main": "index.js",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "fs-extra": "^8.1.0",
+    "https": "^1.0.0",
+    "query-string": "^6.10.1",
+    "request": "^2.88.0",
+    "request-progress": "^3.0.0",
+    "request-promise": "^4.2.5",
+    "snazzy": "^8.0.0",
+    "standard": "^14.3.1",
+    "url-parse": "^1.4.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "standard": "standard --verbose | snazzy",
+    "standard-fix": "standard --fix --verbose | snazzy"
+  },
+  "author": "Maxime Fabas",
+  "repository": "https://github.com/maximefabas/reverbradio-backup",
+  "license": "ISC"
+}
