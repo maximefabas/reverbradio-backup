@@ -6,7 +6,7 @@ const progress = require('request-progress')
 const cheerio = require('cheerio')
 const queryString = require('query-string')
 
-const createOutputDir = async(outDirExists,templateDirPath,outDirPath,outDirCoversPath=false,outDirAudiosPath=false,outDirData=false) =>{
+const createOutputDir = async(outDirExists,templateDirPath,outDirPath,outDirCoversPath=false,outDirAudiosPath=false,outDirDataPath=false) =>{
   console.log('Start creating a backup of https://reverberationradio.com.\n')
 
   // Create output directory if needed
@@ -22,7 +22,7 @@ const createOutputDir = async(outDirExists,templateDirPath,outDirPath,outDirCove
     console.log('Done.\n')
   }
   
-  if(outDirData){fs.mkdirSync(outDirData)}
+  if(outDirDataPath && !fs.existsSync(outDirDataPath)){fs.mkdirSync(outDirDataPath)}
 }
 
 const recursePages = async (page = 0, attempt = 0, data = []) => {
@@ -117,13 +117,14 @@ const listFiles = async (data,parameters) => {
   let playlist = [];
   for(let i = 0; i< data.length; i++){
     if(data[i].text && data[i].text !== null){
-      let text = data[i].text.replace(/<a(.+?)a>/g,'');
+      let text = data[i].text+"<"
+      text = text.replace(/<a(.+?)a>/g,'');
       text = text.replace(/<a(.+?)a>|<b>|<\/b>/g,'');
-      text = text.match(/>[0-9].(.+?)</g)
+      text = text.match(/[0-9].(.+?)</g)
   
       if(text && text !== null){
         for(let j = 0; j<text.length; j++){
-            text[j] = text[j].replace(/>[0-9].\s|>1[0-9].\s|</g,'');
+            text[j] = text[j].replace(/[0-9].\s|>1[0-9].\s|</g,'');
             text[j] = text[j].replace(/\s-\s/g,'-');
             playlist.push({artist:parameters.entities.decode(text[j].split('-')[0]),song:parameters.entities.decode(text[j].split('-')[1])})
         }

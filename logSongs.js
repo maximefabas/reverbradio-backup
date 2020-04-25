@@ -7,7 +7,7 @@ const entities = new Entities();
 
 const templateDirPath = path.join(__dirname, 'template')
 const outDirPath = path.join(__dirname, 'output')
-const outDirData = path.join(outDirPath, 'data')
+const outDirDataPath = path.join(outDirPath, 'data')
 const outDirExists = fs.existsSync(outDirPath)
 
 const dataDirPath = path.join(__dirname, 'data')
@@ -21,7 +21,7 @@ doTheJob();
 // Main script
 async function doTheJob () {
 
-  await fcts.createOutputDir(outDirExists,templateDirPath,outDirPath,false,false,outDirData)
+  await fcts.createOutputDir(outDirExists,templateDirPath,outDirPath,false,false,outDirDataPath)
 
   // If no data file exists, load all pages and save data
   let jsonData
@@ -43,7 +43,7 @@ async function doTheJob () {
 
   // Log all artists + Songs
   const jsonDataWithLocalFiles = await fcts.listFiles(jsonData,{entities:entities})
-  fcts.writeJson(jsonDataWithLocalFiles,{path:path,outDirPath:outDirData,fs:fs})
+  fcts.writeJson(jsonDataWithLocalFiles,{path:path,outDirPath:outDirDataPath,fs:fs})
   
   console.log('Done. Your full log of songs is available in the ./output directory.')
   console.log('Time to go listen to reverb #35 (Including Tonetta - Drugs Drugs Drugs) ❤️')
