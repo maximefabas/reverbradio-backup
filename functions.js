@@ -99,16 +99,32 @@ const listFiles = async (data) => {
   let playlist = [];
   for(let i = 0; i< data.length; i++){
     if(data[i].text){
-      let text = data[i].text+"<"
-      text = text.replace(/<a(.+?)a>/g,'');
-      text = text.replace(/<a(.+?)a>|<b>|<\/b>/g,'');
-      text = text.match(/[0-9].(.+?)</g)
-  
+      let text = data[i].text+"<end>"
+      text = entities.decode(text);
+      text = text.replace(/<a(.+?)a>|<strong(.+?)strong>|<span(.+?)span>|<b(.+?)b>|<\/a>|<\/strong>|<\/span>|<\/b>|<br>/g,'');
+      text = text.replace(/[^1.]*/,'<start>');
+      text = text.replace(/([1-9][0-9]?\.)/g,'<end><start>');
+      text = text.replace(/<start><end>/g,'');
+      text = text.match(/(<start>).*?(<end>)/g)
+
       if(text){
         for(let j = 0; j<text.length; j++){
-            text[j] = text[j].replace(/[0-9].\s|>1[0-9].\s|</g,'');
-            text[j] = text[j].replace(/\s-\s/g,'-');
-            playlist.push({artist:entities.decode(text[j].split('-')[0]),song:entities.decode(text[j].split('-')[1])})
+          
+          text[j] = text[j].replace(/(\s-\s)|(\s–\s)/g,'<endartist><song>');
+          let artist = text[j].match(/(<start>).*?(<endartist>)/g);
+          let song = text[j].match(/(<song>).*?(<end>)/g);
+
+          if(artist && song){
+            artist = artist[0].replace(/<start>|<endartist>/g,'');
+            artist = artist.replace(/^[ \t]+|[ \t]+$/g, '');
+            song = song[0].replace(/<song>|<end>/g,'');
+            song = song.replace(/^[ \t]+|[ \t]+$/g, '');
+            playlist.push({artist:artist,song:song})
+          }
+          // else{
+          //   console.log(text[j]);
+          // }
+
         }
       }
     }
