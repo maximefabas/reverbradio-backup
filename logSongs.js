@@ -1,9 +1,8 @@
-const fcts = require('./functions');
+const {recursePages,listFiles,writeJson} = require('./functions');
 
 const fs = require('fs')
+const fsExtra = require('fs-extra')
 const path = require('path')
-const Entities = require('html-entities').AllHtmlEntities;
-const entities = new Entities();
 
 const templateDirPath = path.join(__dirname, 'template')
 const outDirPath = path.join(__dirname, 'output')
@@ -21,13 +20,28 @@ doTheJob();
 // Main script
 async function doTheJob () {
 
-  await fcts.createOutputDir(outDirExists,templateDirPath,outDirPath,false,false,outDirDataPath)
+  console.log('Start creating a backup of https://reverberationradio.com.\n')
+
+  // Create output directory if needed
+  if (!outDirExists) {
+    console.log('Creating output directory...')
+    try { await fsExtra.copy(templateDirPath, outDirPath) } catch (e) {
+      console.log(`Error: ${e.message}\n`)
+      process.exit(1)
+    }
+    if(outDirCoversPath){fs.mkdirSync(outDirCoversPath)}
+    if(outDirAudiosPath){fs.mkdirSync(outDirAudiosPath)}
+    
+    console.log('Done.\n')
+  }
+  
+  if(outDirDataPath && !fs.existsSync(outDirDataPath)){fs.mkdirSync(outDirDataPath)}
 
   // If no data file exists, load all pages and save data
   let jsonData
   if (!dataFileExists) {
     // Load all pages and gather data
-    jsonData = await fcts.recursePages(0,0,[],true)
+    jsonData = await recursePages(0,0,[],true)
 
     // Save data file
     if (!dataDirExists) fs.mkdirSync(dataDirPath)
@@ -42,8 +56,8 @@ async function doTheJob () {
   }
 
   // Log all artists + Songs
-  const jsonDataWithLocalFiles = await fcts.listFiles(jsonData,{entities:entities})
-  fcts.writeJson(jsonDataWithLocalFiles,{path:path,outDirPath:outDirDataPath,fs:fs})
+  const jsonDataWithLocalFiles = await listFiles(jsonData)
+  writeJson(jsonDataWithLocalFiles,outDirDataPath)
   
   console.log('Done. Your full log of songs is available in the ./output directory.')
   console.log('Time to go listen to reverb #35 (Including Tonetta - Drugs Drugs Drugs) ❤️')
