@@ -6,6 +6,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "fs-extra": "^8.1.0",
+    "html-entities": "^1.3.1",
     "https": "^1.0.0",
     "query-string": "^6.10.1",
     "request": "^2.88.0",
@@ -18,6 +19,7 @@
   "devDependencies": {},
   "scripts": {
     "start": "node ./index.js",
+    "logsongs": "node ./logSongs.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "standard": "standard --verbose | snazzy",
     "standard-fix": "standard --fix --verbose | snazzy"
