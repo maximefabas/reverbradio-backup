@@ -1,6 +1,7 @@
-const fcts = require('./functions');
+const {recursePages,saveFiles,fillTemplate} = require('./functions');
 
 const fs = require('fs')
+const fsExtra = require('fs-extra')
 const path = require('path')
 
 const templateDirPath = path.join(__dirname, 'template')
@@ -21,14 +22,27 @@ doTheJob();
 // Main script
 async function doTheJob () {
 
-  await fcts.createOutputDir(outDirExists,templateDirPath,outDirPath,outDirCoversPath,outDirAudiosPath)
+  console.log('Start creating a backup of https://reverberationradio.com.\n')
+
+  // Create output directory if needed
+  if (!outDirExists) {
+    console.log('Creating output directory...')
+    try { await fsExtra.copy(templateDirPath, outDirPath) } catch (e) {
+      console.log(`Error: ${e.message}\n`)
+      process.exit(1)
+    }
+    if(outDirCoversPath){fs.mkdirSync(outDirCoversPath)}
+    if(outDirAudiosPath){fs.mkdirSync(outDirAudiosPath)}
+    
+    console.log('Done.\n')
+  }
 
   // If no data file exists, load all pages and save data
   let jsonData
   if (!dataFileExists) {
     // Load all pages and gather data
     console.log('Start loading pages:\n')
-    jsonData = await fcts.recursePages(0,0,[],false)
+    jsonData = await recursePages(0,0,[],false)
     console.log(`Gathered data about ${jsonData.length} playlists.\n`)
 
     // Save data file
@@ -46,12 +60,12 @@ async function doTheJob () {
 
   // Save audio files and covers
   console.log(`Gonna download cover images and audio files for ${jsonData.length} playlists.\n`)
-  const jsonDataWithLocalFiles = await fcts.saveFiles(jsonData,{outDirCoversPath:outDirCoversPath,outDirAudiosPath:outDirAudiosPath,startSavingAt:startSavingAt});
+  const jsonDataWithLocalFiles = await saveFiles(jsonData,outDirCoversPath,outDirAudiosPath,startSavingAt);
   console.log('Done.\n')
 
   // Fill HTML template
   console.log('Filling output template...\n')
-  await fcts.fillTemplate(jsonDataWithLocalFiles,{outDirPath:outDirPath})
+  await fillTemplate(jsonDataWithLocalFiles,outDirPath)
   console.log('Done. Your backup is located in the ./output directory.')
   console.log('Time to go listen to reverb #11 ❤️')
   console.log('Buh bye James.\n')
